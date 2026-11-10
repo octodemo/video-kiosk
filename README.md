@@ -12,35 +12,101 @@ the list at the same place.
 - Touch, mouse, and keyboard: tap or click any folder card, swipe or drag the carousel, or use the arrow keys.
 - Works offline. Fonts, icons, and videos are local.
 
-## Quick start
+## Quick start: Set up the video kiosk
 
-Requires:
+### Requirements
 
-- Node.js 24 or later.
-- [ffmpeg](https://ffmpeg.org/) for thumbnails and video lengths (`brew install ffmpeg` or
-  `winget install ffmpeg`).
+- Node.js 24 or later
+- [FFmpeg](https://ffmpeg.org/) for video thumbnails and durations (optional;
+  `brew install ffmpeg` or `winget install ffmpeg`)
 
-1. Put your videos in `videos/`, one subfolder for each kiosk folder (the video files are
-   not in this repository).
-2. Install and start:
-   ```bash
-   npm install
-   npm start
-   ```
-   The settings page opens at `http://127.0.0.1:3000/`. For a different port, use
-   `PORT=3001 npm start` (macOS) or `$env:PORT=3001; npm start` (PowerShell). Use
-   `npm start -- --no-open` to not open a browser.
-3. On the settings page, pick a catalog JSON file or a folder, a theme, and the kiosk
-   behavior (idle reset time, attract mode, captions default, caption size).
-4. Select **Launch kiosk**. It opens in full screen. **Esc** exits full screen only; a
-   **Full screen** button then shows in the upper right. To return to the settings, select
-   the gear on the home screen, press and hold the logo or the title for 3 seconds, or press
-   **Ctrl+Alt+S**.
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/octodemo/video-kiosk.git
+cd video-kiosk
+```
+
+### 2. Download the videos
+
+Download the video content from SharePoint:
+
+- [Universe on the Road — All Video Content](https://microsofteur.sharepoint.com/:f:/t/UniverseontheRoad/cgpXzt7ikPH9RpMUBz16pDzwEgUBGfTtHA3IkAwzwAN7eVzhkA)
+  (Self-Serve Demos) — primary location for event video content.
+
+Copy the downloaded topic folders into the project's `videos/` directory.
+
+Keep the existing folder names and filenames unchanged. The provided catalog uses these
+names to locate videos.
+
+```
+video-kiosk/
+├── catalogs/
+│   └── universe-on-the-road.json
+└── videos/
+    ├── GitHub Advanced Security - Found means fixed/
+    ├── GitHub Copilot - Automations, Metrics, Code Review, Cloud Agent/
+    ├── GitHub Copilot - Desktop App, CLI, SDK/
+    └── GitHub Enterprise - Scale AI-powered development with confidence/
+```
+
+> [!NOTE]
+> Video files are not included in the GitHub repository.
+
+### 3. Launch the application
+
+```bash
+npm install
+npm start
+```
+
+The settings page opens automatically at:
+
+```
+http://127.0.0.1:3000/
+```
+
+For a different port, use `PORT=3001 npm start` (macOS) or `$env:PORT=3001; npm start`
+(PowerShell). Use `npm start -- --no-open` to not open a browser.
+
+### 4. Configure the kiosk
+
+On the settings page:
+
+1. Select **JSON file** as the video source.
+2. Choose `catalogs/universe-on-the-road.json`.
+3. Select a theme: **GitHub Dark** or **GitHub Light**. Standard **Dark** and **Light**
+   themes are also available.
+4. Adjust the idle timeout, attract mode, and captions if required.
+5. Click **Launch kiosk**.
 
 ![The settings page: videos source, theme, and kiosk behavior](docs/images/settings.jpg)
 
-Settings are saved in `data/settings.json`. The browser also remembers the theme, so a
-reload shows it at once.
+The supplied JSON file already contains curated video titles, descriptions, and
+categories. You can edit it to update the content. Settings are saved in
+`data/settings.json`.
+
+### 5. Verify the videos
+
+The settings page displays the number of available videos and any missing files.
+
+You can also validate the catalog:
+
+```bash
+npm run validate -- catalogs/universe-on-the-road.json
+```
+
+If videos are missing, verify their folder names and filenames against the JSON catalog.
+
+### Kiosk controls
+
+- **Esc:** Exit full-screen mode.
+- **Settings:** Select the gear icon on the home screen, hold the logo or title for three
+  seconds, or press **Ctrl+Alt+S**.
+- **Reload:** Refresh the catalog after changing video files or JSON metadata.
+
+For advanced configuration, browser kiosk mode, and other details, see the remaining
+sections of this README.
 
 ## Using the kiosk
 
