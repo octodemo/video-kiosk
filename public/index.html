@@ -9,7 +9,7 @@
       // The server settings stay the source of truth and replace it when they load.
       try {
         const t = localStorage.getItem('kiosk-theme');
-        if (/^(dark|light|github-dark|github-light)$/.test(t)) document.documentElement.dataset.theme = t;
+        if (/^(dark|light|github-dark|github-light|vscode-dark|vscode-light)$/.test(t)) document.documentElement.dataset.theme = t;
       } catch {}
     </script>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%2322d3ee'/%3E%3Cpath d='M6 4.5v7l5.5-3.5z' fill='white'/%3E%3C/svg%3E" />
@@ -40,7 +40,8 @@
 
         <section class="card" aria-labelledby="source-h">
           <h2 id="source-h">Videos</h2>
-          <p class="hint">
+          <p class="hint static-only">Select <strong>Browse</strong> to pick a catalog JSON file. This site saves the settings in this browser.</p>
+          <p class="hint server-only">
             Use a catalog JSON file (see the <a href="/schema/kiosk-catalog.schema.json" target="_blank">schema</a>), or a folder.
             In a folder, each subfolder becomes a kiosk folder. A subfolder name such as <code>GitHub Copilot - Desktop App, CLI, SDK</code>
             becomes the title and the description.
@@ -62,6 +63,10 @@
           </div>
           <div id="quick-picks" class="chips"></div>
           <div id="status" class="status" role="status" aria-live="polite"></div>
+          <div class="manage-link static-only">
+            <a class="btn" href="/manage.html"><span class="icon" data-icon="pencil"></span>Video management</a>
+            <span class="hint">Turn videos on or off, edit them, or add videos. Sign in with an approved GitHub account.</span>
+          </div>
         </section>
 
         <section class="card" aria-labelledby="theme-h">
@@ -82,6 +87,14 @@
               <button id="attract" class="switch" type="button" role="switch" aria-checked="true" aria-label="Attract mode"></button>
             </div>
             <div class="option">
+              <div><strong>Loop video playback</strong><span>Play the videos in a folder one after another. After the last video, the first plays again, until a viewer selects Back.</span></div>
+              <button id="loop" class="switch" type="button" role="switch" aria-checked="false" aria-label="Loop video playback"></button>
+            </div>
+            <div class="option">
+              <div><strong>Mute videos</strong><span>Start every video without sound. Viewers can turn sound on with the speaker button in the player. Turn captions on so viewers can still follow along.</span></div>
+              <button id="mute" class="switch" type="button" role="switch" aria-checked="false" aria-label="Mute videos"></button>
+            </div>
+            <div class="option">
               <div><strong>Captions on by default</strong><span>Show captions when a video has a .vtt file. Viewers can turn them on or off with the CC button in the player.</span></div>
               <button id="captions" class="switch" type="button" role="switch" aria-checked="true" aria-label="Captions"></button>
             </div>
@@ -96,8 +109,8 @@
           <p>
             The kiosk opens in full screen. <kbd>Esc</kbd> exits full screen; the kiosk keeps running and shows a
             <strong>Full screen</strong> button.<br />
-            To come back to this page, press and hold the logo or the title for 3 seconds, or press
-            <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>.<br />
+            To come back to this page, select the gear in the top-right corner of the home screen, press and hold
+            the logo or the title for 3 seconds, or press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>.<br />
             To start a browser directly in kiosk mode, open <code id="kiosk-url"></code>
           </p>
           <button id="launch" class="btn btn-primary" type="button"><span class="icon" data-icon="screen-full"></span>Launch kiosk</button>
@@ -141,7 +154,7 @@
       <section id="folder" class="screen folder-screen" hidden>
         <div class="folder-bar">
           <nav class="crumbs" aria-label="Breadcrumb"></nav>
-          <div class="pill count"><span class="icon" data-icon="video"></span><span></span></div>
+          <button class="pill count" type="button"><span class="icon" data-icon="play"></span><span class="count-text"></span></button>
         </div>
         <div class="folder-layout">
           <div class="folder-hero"><div class="hero-slot"><div class="platform"></div></div></div>
@@ -155,7 +168,7 @@
       <button id="open-settings" class="pill settings-btn" type="button" aria-label="Settings" title="Settings"><span class="icon" data-icon="gear"></span></button>
 
       <div id="player" class="player" hidden>
-        <video playsinline preload="auto" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback"></video>
+        <video playsinline preload="auto" crossorigin="anonymous" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback"></video>
         <div class="captions" aria-hidden="true"></div>
         <button class="pill close player-back" type="button" aria-label="Back"><span class="icon" data-icon="arrow-left"></span><span class="back-label">Back</span></button>
         <div class="player-ui">
@@ -165,9 +178,11 @@
             <span class="time-now">0:00</span>
             <div class="seek" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><div class="seek-fill"></div><div class="seek-knob"></div></div>
             <span class="time-total">0:00</span>
+            <button class="round-btn sound" type="button" aria-label="Mute" aria-pressed="false"><span class="icon"></span></button>
             <button class="pill cc" type="button" aria-label="Turn captions off" aria-pressed="true" hidden><span class="cc-label">CC</span><span class="cc-state">On</span></button>
           </div>
         </div>
+        <div class="buffering" role="status" aria-label="Loading"></div>
         <div class="player-error" hidden></div>
       </div>
     </div>
