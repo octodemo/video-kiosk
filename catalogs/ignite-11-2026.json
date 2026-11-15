@@ -1,10 +1,56 @@
 {
   "$schema": "../schema/kiosk-catalog.schema.json",
-  "title": "Universe on the Road",
+  "title": "Ignite 2026",
   "subtitle": "Videos",
-  "icon": "assets/GitHub_Invertocat_White.svg",
-  "iconLight": "assets/GitHub_Invertocat_Black.svg",
+  "icon": "assets/Microsoft_Logo_White.svg",
+  "iconLight": "assets/Microsoft_Logo_Black.svg",
   "folders": [
+    {
+      "title": "Azure DevOps",
+      "description": "Power enterprise planning and delivery",
+      "icon": "infinity",
+      "videos": [
+        {
+          "title": "Azure DevOps: Agentic Autofix",
+          "description": "A narrated explainer video. Agentic Autofix turns a code scanning or dependency alert into a proposed pull request that uses your repository context, and your team reviews it before merging.",
+          "path": "../videos/Azure DevOps - Power enterprise planning and delivery/azure-devops-agentic-autofix.mp4",
+          "captions": "../videos/Azure DevOps - Power enterprise planning and delivery/azure-devops-agentic-autofix.vtt"
+        },
+        {
+          "title": "Question: Can the Azure Boards “Create a pull request with GitHub Copilot” integration target an Azure Repos repository?",
+          "description": "An animated multiple-choice quiz about Azure DevOps. It shows the question and answers, reveals the correct answer, and ends with a QR code to the docs. This Azure Boards coding-agent integration requires GitHub repositories; Azure Repos code review is separate.",
+          "path": "../videos/Azure DevOps - Power enterprise planning and delivery/azure-devops-b-question-azure-boards-copilot-coding-agent-repo-requirement.mp4"
+        },
+        {
+          "title": "Azure DevOps in the GitHub Copilot app",
+          "description": "A narrated explainer video. The Azure DevOps canvas lets you find your Azure DevOps work, edit work items, and complete pull requests without leaving the GitHub Copilot app.",
+          "path": "../videos/Azure DevOps - Power enterprise planning and delivery/azure-devops-copilot-app.mp4",
+          "captions": "../videos/Azure DevOps - Power enterprise planning and delivery/azure-devops-copilot-app.vtt"
+        },
+        {
+          "title": "Azure DevOps: Your Work in Copilot Cowork",
+          "description": "A narrated explainer video. With the Azure DevOps Plugin, you can work with Azure DevOps from Copilot Cowork, next to your documents and meeting notes, without switching tools.",
+          "path": "../videos/Azure DevOps - Power enterprise planning and delivery/azure-devops-copilot-cowork.mp4",
+          "captions": "../videos/Azure DevOps - Power enterprise planning and delivery/azure-devops-copilot-cowork.vtt"
+        },
+        {
+          "title": "Question: Your team wants the remote Azure DevOps MCP Server. Which organization setup is required?",
+          "description": "An animated multiple-choice quiz about Azure DevOps. It shows the question and answers, reveals the correct answer, and ends with a QR code to the docs. The remote Azure DevOps MCP Server requires an Entra-backed organization and Entra sign-in.",
+          "path": "../videos/Azure DevOps - Power enterprise planning and delivery/azure-devops-d-question-azure-devops-remote-mcp-identity.mp4"
+        },
+        {
+          "title": "Azure DevOps: Enterprise Live Migrations",
+          "description": "A narrated explainer video. Enterprise Live Migrations moves Azure DevOps repositories to GitHub Enterprise Cloud with data residency while developers keep working, through validate, synchronize, and cut over stages, with a brief cutover window and an optional hybrid model.",
+          "path": "../videos/Azure DevOps - Power enterprise planning and delivery/azure-devops-enterprise-live-migrations.mp4",
+          "captions": "../videos/Azure DevOps - Power enterprise planning and delivery/azure-devops-enterprise-live-migrations.vtt"
+        },
+        {
+          "title": "Question: You enable Copilot code review in Azure Repos. Will every pull request automatically get a review?",
+          "description": "An animated multiple-choice quiz about Azure DevOps. It shows the question and answers, reveals the correct answer, and ends with a QR code to the docs. Enabling review makes it available; a branch policy requests it automatically for the target branch.",
+          "path": "../videos/Azure DevOps - Power enterprise planning and delivery/question-azure-repos-copilot-automatic-review-policy.mp4"
+        }
+      ]
+    },
     {
       "title": "GitHub Advanced Security",
       "description": "Found means fixed",
@@ -41,8 +87,7 @@
         {
           "title": "Fix the dependency risks that matter first with Dependabot",
           "description": "A narrated explainer video. A long list of dependency alerts does not tell you what to fix first. It shows how to add evidence from your code and your running application: start with severity, then filter Dependabot alerts by reachability and by deployment and runtime context. It then opens one alert, follows the call path, checks the linked workload, and picks a patched version, so the remediation decision stays grounded in evidence.",
-          "path": "../videos/GitHub Advanced Security - Found means fixed/github-dependabot-prioritization.mp4",
-          "captions": "../videos/GitHub Advanced Security - Found means fixed/github-dependabot-prioritization.vtt"
+          "path": "../videos/GitHub Advanced Security - Found means fixed/github-dependabot-prioritization.mp4"
         },
         {
           "title": "PR security Q&A",
@@ -351,6 +396,12 @@
           "captions": "../videos/GitHub Enterprise - Scale AI-powered development with confidence/github-code-quality.vtt"
         },
         {
+          "title": "GitHub Enterprise: Scheduling Copilot Access Transitions",
+          "description": "Show how an enterprise admin explores the Copilot access billing model, reviews its impact, prepares the settings, and schedules the transition for the first day of a billing cycle.",
+          "path": "../videos/GitHub Enterprise - Scale AI-powered development with confidence/github-copilot-access-transition.mp4",
+          "captions": "../videos/GitHub Enterprise - Scale AI-powered development with confidence/github-copilot-access-transition.vtt"
+        },
+        {
           "title": "GitHub Issues: Issue Intents",
           "description": "A narrated demo by Gwyneth Peña-Siguenza (about 3 min 45 s). It shows how issue intents keep issue metadata up to date. Users filter issues with pending suggestions, read the confidence and rationale of each suggestion, and accept or decline it. It also shows the automation levels (full control, cautious, balanced), a GitHub Agentic Workflow in Markdown that sets issue intent for issue-type and issue-field actions, and the safe outputs in GitHub Actions.",
           "path": "../videos/GitHub Enterprise - Scale AI-powered development with confidence/issue-intents-v2.mp4"
@@ -375,6 +426,145 @@
           "title": "Question: Which Copilot clients does GitHub support with managed settings?",
           "description": "An animated multiple-choice quiz about GitHub Enterprise. It shows the question and answers, reveals the correct answer, and ends with a QR code to the docs. Every one of these clients supports managed settings, but the keys that apply are different for each client.",
           "path": "../videos/GitHub Enterprise - Scale AI-powered development with confidence/z-question-enterprise-managed-settings-clients.mp4"
+        }
+      ]
+    },
+    {
+      "title": "Visual Studio & VS Code",
+      "description": "AI-powered development, built in",
+      "icon": "code-square",
+      "videos": [
+        {
+          "title": "FinOps for AI",
+          "description": "A narrated explainer video. Show how to plan, manage, and optimize AI spend with Microsoft tools, so viewers can keep AI costs predictable, visible, and tied to value.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/finops-for-ai.mp4",
+          "captions": "../videos/Visual Studio & VS Code - AI-powered development, built in/finops-for-ai.vtt"
+        },
+        {
+          "title": "Question: In Visual Studio, when does Copilot load an Agent Skill compared with broad custom instructions?",
+          "description": "An animated multiple-choice quiz about Visual Studio / VS Code. It shows the question and answers, reveals the correct answer, and ends with a QR code to the docs. Skills load for relevant tasks. Broad custom instructions guide interactions generally.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/question-visual-studio-agent-skills.mp4"
+        },
+        {
+          "title": "Visual Studio: Review GitHub Pull Requests",
+          "description": "A narrated explainer video. Review a GitHub pull request from start to end in Visual Studio, and add it to a Copilot chat, without leaving the IDE.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/review-gh-pr-vs.mp4",
+          "captions": "../videos/Visual Studio & VS Code - AI-powered development, built in/review-gh-pr-vs.vtt"
+        },
+        {
+          "title": "Visual Studio: Using Pinned Data Tips",
+          "description": "A narrated walkthrough (about 2 min 7 s) that shows how a pinned DataTip in the Visual Studio debugger keeps an important value visible as you step through code. It pins a cart total and the values under it, steps through each calculation, and adds a note that does not change the source code.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/using-pinned-data-tips.mp4",
+          "captions": "../videos/Visual Studio & VS Code - AI-powered development, built in/using-pinned-data-tips.vtt"
+        },
+        {
+          "title": "Visual Studio: Modernize a .NET Application",
+          "description": "A narrated explainer video. Upgrade a .NET Framework app to .NET 10 with the GitHub Copilot modernization agent in Visual Studio, and stay in control at each checkpoint.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/visual-studio-modernize-dotnet.mp4",
+          "captions": "../videos/Visual Studio & VS Code - AI-powered development, built in/visual-studio-modernize-dotnet.vtt"
+        },
+        {
+          "title": "VS Code: Compare Models in the Agents Window",
+          "description": "A demo by Julia Kasper of Model Compare in the VS Code Agents window. One prompt runs on four models at the same time, each in its own isolated worktree, while Copilot Fusion runs the same task. A judge model reviews the attempts and recommends the best one. The video compares the time and credits that each model used and shows how to open each result.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/vscode-compare-models.mp4",
+          "captions": "../videos/Visual Studio & VS Code - AI-powered development, built in/vscode-compare-models.vtt"
+        },
+        {
+          "title": "Visual Studio: Find and Fix Bugs with the Debugger Agent",
+          "description": "A captioned demo (about 3 min) of the GitHub Copilot Debugger agent in Visual Studio. From a vague complaint that overnight bookings sometimes cost an extra day, the agent picks a supplied failing test, runs it under the debugger, inspects the live runtime values, and proposes a fix to BookingCalculator.cs. After approval, it verifies the fix with the regression and existing tests. It ends with a QR code to the Debugger Agent docs on Microsoft Learn.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/vs-debugger-agent.mp4"
+        },
+        {
+          "title": "Visual Studio: Profile your app with GitHub Copilot Profiler Agent",
+          "description": "A narrated walkthrough (about 4 min) that profiles a report exporter in Visual Studio with a CPU trace. It inspects the call tree and sampled call stacks, asks the GitHub Copilot Profiler Agent to explain the trace and propose a change without automatic edits, compares that proposal with a supplied reference implementation, checks that the output stays identical, and profiles again to compare the traces and local timings.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/vs-profileragent.mp4",
+          "captions": "../videos/Visual Studio & VS Code - AI-powered development, built in/vs-profileragent.vtt"
+        },
+        {
+          "title": "Visual Studio: Search Runtime Strings with the Text Visualizer",
+          "description": "A narrated walkthrough (about 1 min 55 s) that searches a large runtime string in the Visual Studio Text Visualizer. While debugging, the presenter opens a JSON payload of 800 orders, presses Ctrl+F to find the bad currency value \"US D\" in ORDER-0420, fixes the code that produced it, and searches again to confirm that the value is gone. The search also supports regex, case-sensitive, and case-insensitive matching.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/vs-text-visualizer-search.mp4",
+          "captions": "../videos/Visual Studio & VS Code - AI-powered development, built in/vs-text-visualizer-search.vtt"
+        },
+        {
+          "title": "Question: A VS Code Agent Host session is running. What happens when a second window connects to that session?",
+          "description": "An animated multiple-choice quiz about Visual Studio / VS Code. It shows the question and answers, reveals the correct answer, and ends with a QR code to the docs. While the Agent Host runs, multiple connected clients share the same session state.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/question-vscode-shared-agent-session.mp4"
+        },
+        {
+          "title": "Agent Bake Off",
+          "description": "",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/Agent Bake Off.mp4"
+        },
+        {
+          "title": "Agent Sessions that Sync Everywhere with VS Code",
+          "description": "Agent Host in VS Code: https://code.visualstudio.com/docs/agents/concepts/agent-host File an issue: https://github.com/microsoft/vscode/issues Agent Host Protocol: https://microsoft.github.io/agent-host-protocol/",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/AgentHost.mp4"
+        },
+        {
+          "title": "Agent Merge: Keep Your PR Moving in VS Code",
+          "description": "https://aka.ms/Doc/Agent-Merge",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/Agent-Merge.mp4"
+        },
+        {
+          "title": "Meet Blobby",
+          "description": "Your coding companion in VS Code",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/Blobby-Ignite.mp4"
+        },
+        {
+          "title": "VS Code: dictation",
+          "description": "A video in the VS Code booth folder: Dictation",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/dictation-captions.mp4"
+        },
+        {
+          "title": "Explore an Unfamiliar PostgreSQL Database with VS",
+          "description": "A video in the VS Code booth folder: Explore an Unfamiliar PostgreSQL Database with VS. The title and this description come from the file name.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/Explore-an-Unfamiliar-PostgreSQL-Database-VS.mp4"
+        },
+        {
+          "title": "Get Started with PostgreSQL in VS Code",
+          "description": "A video in the VS Code booth folder: Get Started with PostgreSQL in VS Code. The title and this description come from the file name.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/Get-Started-with-PostgreSQL-in-VS-Code.mp4"
+        },
+        {
+          "title": "Question: You delegate research to a subagent in VS Code's Local session target. What context should you send?",
+          "description": "An animated multiple-choice quiz about Visual Studio / VS Code. It shows the question and answers, reveals the correct answer, and ends with a QR code to the docs. Local subagents do not inherit the main conversation. Send a self-contained assignment.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/question-vscode-subagent-context.mp4"
+        },
+        {
+          "title": "Integrated Browser",
+          "description": "A video in the VS Code booth folder: Integrated Browser. The title and this description come from the file name.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/Integrated-Browser-Captions.mp4"
+        },
+        {
+          "title": "The Story of VS Code | Official Trailer (Trailer)",
+          "description": "",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/The-Story-of-VS-Code.mp4"
+        },
+        {
+          "title": "Troubleshoot and Optimize PostgreSQL Performance",
+          "description": "A video in the VS Code booth folder: Troubleshoot and Optimize PostgreSQL Performance. The title and this description come from the file name.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/Troubleshoot-and-Optimize-PostgreSQL-Performance.mp4"
+        },
+        {
+          "title": "VS Code: voice mode",
+          "description": "A video in the VS Code booth folder: Voice Mode.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/voice-mode-captions.mp4"
+        },
+        {
+          "title": "Write and Optimize PostgreSQL Queries Faster in VS",
+          "description": "A video in the VS Code booth folder: Write and Optimize PostgreSQL Queries Faster in VS. The title and this description come from the file name.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/Write-and-Optimize-PostgreSQL-Queries-Faster-in-VS.mp4"
+        },
+        {
+          "title": "Using GitHub Copilot to auto fix NuGet package vulnerabilities",
+          "description": "Learn how to use GitHub Copilot in Visual Studio to auto fix NuGet package vulnerabilities.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/VS-copilot-fix-nuget-vulnerabilities.mp4"
+        },
+        {
+          "title": "VS Code: connectors",
+          "description": "A captioned demo of connectors in VS Code. Run Chat: Open Customizations to add a connector such as Slack, and authorize it one time. Then Copilot finds a Slack thread about new features and adds recurring and scheduled tasks to a to-do app.",
+          "path": "../videos/Visual Studio & VS Code - AI-powered development, built in/vs-code-connectors.mp4"
         }
       ]
     }

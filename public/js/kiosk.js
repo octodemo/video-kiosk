@@ -7,9 +7,11 @@ const ATTRACT_AFTER_MS = 20_000;
 const ATTRACT_STEP_MS = 6_000;
 const CURSOR_HIDE_MS = 3_000;
 const SETTINGS_HOLD_MS = 3_000;
+const CATALOG_CHECK_MS = 60_000;
+const APPLY_AFTER_IDLE_MS = 5_000;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
-export function createKiosk({ onExit }) {
+export function createKiosk({ backend, onExit }) {
   const root = $('#kiosk');
   const home = $('#home');
   const folderScreen = $('#folder');
@@ -24,29 +26,35 @@ export function createKiosk({ onExit }) {
   let folderIndex = -1;
   let currentRow = -1;
   let watched = new Set();
-  let captionsOn = true; // The viewer's choice; an idle reset restores the admin default.
+  // The viewer's choices for captions and sound; an idle reset restores the admin defaults.
+  let captionsOn = true;
+  let mutedOn = false;
   let lastInput = 0;
   let idleResetDone = false;
   let lastAttract = 0;
   let timer = 0;
+  let checkTimer = 0;
+  let pendingCatalog = null; // A newer published catalog, waiting for a quiet moment
   let listeners = null; // AbortController for the page-wide listeners while the kiosk runs
 
   const carousel = new Carousel($('.stage', home), $('.carousel', home), {
     onOpen: (i) => openFolder(i),
     onIndex: (i) => $$('button', homeDots).forEach((d, k) => d.classList.toggle('is-active', k === i)),
   });
-  const player = createPlayer($('#player'), { onClose: onPlayerClosed, onCaptions: (on) => (captionsOn = on) });
+  const player = createPlayer($('#player'), { onClose: onPlayerClosed, onCaptions: (on) => (captionsOn = on), onMuted: (on) => (mutedOn = on), onEnded: playNext, onError: skipFailed });
 
   $('.nav.prev', home).addEventListener('click', () => carousel.prev());
   $('.nav.next', home).addEventListener('click', () => carousel.next());
   back.addEventListener('click', () => goHome());
+  $('.count', folderScreen).addEventListener('click', playAll);
 
   // ---- Loading ----
   async function load() {
-    const res = await fetch('/api/catalog', { cache: 'no-store' });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'The catalog did not load.');
-    catalog = data;
+    catalog = await backend.getCatalog();
+    render();
+  }
+
+  function render() {
     applyTheme(catalog.settings.theme);
     player.setCaptionSize(catalog.settings.captionSize);
     const lightTheme = catalog.settings.theme.endsWith('light');
@@ -90,10 +98,10 @@ export function createKiosk({ onExit }) {
     return document.startViewTransition(update);
   }
 
-  function openFolder(i) {
+  function openFolder(i, { animate = true } = {}) {
+    setUrl(i);
     const card = carousel.cards[i];
-    card.style.viewTransitionName = 'folder-hero';
-    transition(() => {
+    const show = () => {
       card.style.viewTransitionName = '';
       // Center the opened folder, so Back returns to it.
       carousel.go(i, { instant: true });
@@ -101,31 +109,37 @@ export function createKiosk({ onExit }) {
       home.hidden = true;
       folderScreen.hidden = false;
       back.hidden = false;
-    });
+    };
+    if (!animate) return show();
+    card.style.viewTransitionName = 'folder-hero';
+    transition(show);
   }
 
-  function goHome({ reset = false } = {}) {
+  function goHome({ reset = false, animate = true } = {}) {
+    setUrl(-1, -1, { replace: reset });
     if (player.isOpen) player.close('home');
     const wasFolder = !folderScreen.hidden;
     if (reset) {
       watched = new Set();
       captionsOn = catalog.settings.captions;
+      mutedOn = catalog.settings.muteVideos;
       carousel.go(carousel.home, { instant: wasFolder });
     }
     if (!wasFolder) return;
     const center = carousel.cards[carousel.index];
-    const vt = transition(() => {
+    const show = () => {
       folderScreen.hidden = true;
       back.hidden = true;
       home.hidden = false;
       folderIndex = -1;
-      if (center && document.startViewTransition) center.style.viewTransitionName = 'folder-hero';
-    });
+      if (center && animate && document.startViewTransition) center.style.viewTransitionName = 'folder-hero';
+    };
+    const vt = animate ? transition(show) : (show(), null);
     const clear = () => center && (center.style.viewTransitionName = '');
     vt ? vt.finished.finally(clear) : clear();
   }
 
-  function renderFolder(i) {
+  function renderFolder(i, { enter = true } = {}) {
     folderIndex = i;
     const folder = catalog.folders[i];
     const color = carousel.colorFor(i).join(' ');
@@ -138,7 +152,7 @@ export function createKiosk({ onExit }) {
         : [h('strong', {}, folder.title)]),
     );
     const n = folder.videos.length;
-    $('.count span:last-child', folderScreen).textContent = `${n} ${n === 1 ? 'Video' : 'Videos'}`;
+    $('.count-text', folderScreen).textContent = n === 1 ? 'Play 1 Video' : `Play all ${n} Videos`;
 
     const hero = $('.hero-slot', folderScreen);
     $('.fcard', hero)?.remove();
@@ -154,9 +168,11 @@ export function createKiosk({ onExit }) {
     list.replaceChildren(...folder.videos.map((v, vi) => videoRow(v, vi, fallbackMask)));
     markCurrent(0);
     listWrap.scrollTop = 0;
-    folderScreen.classList.remove('screen-enter');
-    void folderScreen.offsetWidth;
-    folderScreen.classList.add('screen-enter');
+    if (enter) {
+      folderScreen.classList.remove('screen-enter');
+      void folderScreen.offsetWidth;
+      folderScreen.classList.add('screen-enter');
+    }
     requestAnimationFrame(updateListDots);
   }
 
@@ -171,19 +187,20 @@ export function createKiosk({ onExit }) {
     }
     thumb.append(h('span', { class: 'play' }, icon('play')));
     if (v.duration) thumb.append(h('span', { class: 'dur' }, formatTime(v.duration)));
-    if (watched.has(`${folderIndex}:${vi}`)) thumb.append(watchedBadge());
+    if (watched.has(videoKey(folderIndex, vi))) thumb.append(watchedBadge());
     return h(
       'li',
       {},
       h(
         'button',
-        { class: 'vrow', type: 'button', 'data-index': vi, onclick: () => playVideo(vi) },
+        { class: 'vrow', type: 'button', 'data-index': vi, onclick: () => ((loopAll = false), playVideo(vi)) },
         thumb,
         h('div', { class: 'vtext' }, h('h3', {}, v.title), v.description ? h('p', {}, v.description) : null),
       ),
     );
   }
 
+  const videoKey = (fi, vi) => `${catalog.folders[fi]?.id}/${catalog.folders[fi]?.videos[vi]?.id}`;
   const watchedBadge = () => h('span', { class: 'watched', html: iconSvg('check-circle-fill') });
 
   // Curved light lines from the folder card to the list.
@@ -235,22 +252,147 @@ export function createKiosk({ onExit }) {
   new ResizeObserver(() => !folderScreen.hidden && updateListDots()).observe(listWrap);
 
   // ---- Playback ----
-  function playVideo(vi) {
+  function playVideo(vi, { replace = false } = {}) {
+    setUrl(folderIndex, vi, { replace });
     markCurrent(vi);
-    player.open(catalog.folders[folderIndex].videos[vi], { captions: captionsOn });
+    player.open(catalog.folders[folderIndex].videos[vi], { captions: captionsOn, muted: mutedOn });
+  }
+
+  // Loop playback: when a video ends, the next one in the folder plays, and after the
+  // last video the first plays again, until a viewer selects Back. The "Loop video playback"
+  // setting turns it on for every video; "Play all" turns it on until the player closes.
+  let loopAll = false;
+  const looping = () => (catalog.settings.loopPlayback || loopAll) && folderIndex >= 0;
+
+  function playAll() {
+    loopAll = true;
+    failedInRow = 0;
+    playVideo(0);
+  }
+
+  function playNext() {
+    if (!looping()) return false;
+    failedInRow = 0;
+    markWatched(currentRow);
+    let next = currentRow + 1;
+    // A newer catalog starts between two videos, so a disabled video leaves the loop.
+    if (pendingCatalog) {
+      const row = currentRow;
+      const kept = applyCatalog();
+      if (folderIndex < 0) return true; // The folder is gone; the kiosk is on the start screen.
+      // The video that ended has its new place; if it is gone, the video now in its old place is next.
+      next = kept ? currentRow + 1 : row;
+    }
+    playVideo(next % catalog.folders[folderIndex].videos.length, { replace: true });
+    return true;
+  }
+
+  // ---- Catalog updates (Video management on the static site) ----
+  async function checkCatalog() {
+    try {
+      const next = await backend.checkCatalog(pendingCatalog ?? catalog);
+      if (next) pendingCatalog = next;
+    } catch {
+      // Try again at the next check.
+    }
+  }
+
+  // Shows the pending catalog and keeps the viewer's place: the same folder and the same video
+  // (by ID). Returns false when the current video is not in the new catalog.
+  function applyCatalog() {
+    const next = pendingCatalog;
+    pendingCatalog = null;
+    if (!next) return true;
+    const folderId = catalog.folders[folderIndex]?.id;
+    const videoId = catalog.folders[folderIndex]?.videos[currentRow]?.id;
+    const homeId = catalog.folders[carousel.index]?.id;
+    const row = currentRow;
+    const scroll = listWrap.scrollTop;
+    catalog = next;
+    render();
+    const homeIndex = catalog.folders.findIndex((f) => f.id === homeId);
+    if (homeIndex >= 0) carousel.go(homeIndex, { instant: true });
+    if (folderId === undefined) return true;
+
+    const fi = catalog.folders.findIndex((f) => f.id === folderId);
+    if (fi < 0) {
+      goHome({ animate: false });
+      return false;
+    }
+    const videos = catalog.folders[fi].videos;
+    const vi = videos.findIndex((v) => v.id === videoId);
+    carousel.go(fi, { instant: true });
+    renderFolder(fi, { enter: false });
+    markCurrent(vi >= 0 ? vi : Math.min(Math.max(row, 0), videos.length - 1));
+    listWrap.scrollTop = scroll;
+    if (!player.isOpen) setUrl(fi, -1, { replace: true });
+    return vi >= 0;
+  }
+
+  // Loop playback: a video that cannot play is skipped. If all the videos in the folder fail
+  // one after the other (for example, the network is down), wait longer before the next try.
+  let failedInRow = 0;
+  function skipFailed() {
+    if (!looping()) return null;
+    const count = catalog.folders[folderIndex].videos.length;
+    failedInRow++;
+    return {
+      wait: failedInRow >= count ? 30_000 : 3000,
+      next: () => playVideo((currentRow + 1) % count, { replace: true }),
+    };
+  }
+
+  function markWatched(vi) {
+    watched.add(videoKey(folderIndex, vi));
+    const row = $$('.vrow', list)[vi];
+    if (row && !$('.watched', row)) $('.thumb', row).append(watchedBadge());
   }
 
   function onPlayerClosed(reason) {
+    loopAll = false;
     if (reason === 'home' || reason === 'exit') return;
     noteInput(); // Watching counts as activity, so the idle timer starts again from here.
     if (folderIndex < 0) return;
+    // Back in the player adds a history entry; a video that ends or fails replaces it.
+    setUrl(folderIndex, -1, { replace: reason !== 'closed' });
+    if (reason === 'ended') markWatched(currentRow);
     const row = $$('.vrow', list)[currentRow];
-    if (reason === 'ended') {
-      watched.add(`${folderIndex}:${currentRow}`);
-      if (row && !$('.watched', row)) $('.thumb', row).append(watchedBadge());
-    }
     row?.scrollIntoView({ block: 'nearest' });
     row?.focus({ preventScroll: true });
+  }
+
+  // ---- Links: #kiosk/<folder id>/<video id> ----
+  // The URL follows the screen, so a link (or a browser reload) opens the same list or video.
+  let following = false; // True while the kiosk follows a link, so it does not write the URL back.
+
+  function setUrl(fi, vi = -1, { replace = false } = {}) {
+    if (following || !listeners) return;
+    const f = catalog.folders[fi];
+    const hash = !f ? '#kiosk' : vi < 0 ? `#kiosk/${f.id}` : `#kiosk/${f.id}/${f.videos[vi].id}`;
+    // On the static site, the link also names the catalog, so it opens the same videos anywhere.
+    const search = catalog.catalogId ? `?catalog=${encodeURIComponent(catalog.catalogId)}` : location.search;
+    const url = location.pathname + search + hash;
+    if (url !== location.pathname + location.search + location.hash) history[replace ? 'replaceState' : 'pushState'](null, '', url);
+  }
+
+  // Shows the folder and video that the URL names. A part that is not in the catalog
+  // falls back to the screen above it (the folder list, or the start screen).
+  function followUrl() {
+    const [, folderId, videoId] = location.hash.slice(1).split('/').map((part) => decodeURIComponent(part));
+    const fi = catalog.folders.findIndex((f) => f.id === folderId);
+    const vi = fi < 0 ? -1 : catalog.folders[fi].videos.findIndex((v) => v.id === videoId);
+    following = true;
+    try {
+      if (fi < 0) goHome({ animate: false });
+      else {
+        if (folderIndex !== fi || folderScreen.hidden) openFolder(fi, { animate: false });
+        if (vi >= 0 && !(player.isOpen && currentRow === vi)) (loopAll = false), playVideo(vi);
+        else if (vi < 0 && player.isOpen) player.close('link');
+      }
+    } finally {
+      following = false;
+    }
+    setUrl(fi, vi, { replace: true });
   }
 
   // ---- Idle, attract mode, cursor ----
@@ -262,7 +404,10 @@ export function createKiosk({ onExit }) {
 
   function idleTick() {
     const t = performance.now();
-    if (player.isPlaying) lastInput = t;
+    if (player.shouldPlay) {
+      lastInput = t; // Watching counts as activity. A video that a viewer paused does not.
+      player.keepPlaying();
+    }
     const idle = t - lastInput;
     root.classList.toggle('hide-cursor', idle > CURSOR_HIDE_MS);
 
@@ -273,6 +418,10 @@ export function createKiosk({ onExit }) {
       goHome({ reset: true });
       lastAttract = t;
     }
+
+    // A newer catalog waits until nobody has touched the kiosk for a few seconds and no
+    // video is open (a loop takes it between two videos, in playNext).
+    if (pendingCatalog && !player.isOpen && idle >= APPLY_AFTER_IDLE_MS) applyCatalog();
 
     const onHome = folderScreen.hidden && !player.isOpen;
     if (catalog.settings.attractMode && onHome && idle >= ATTRACT_AFTER_MS && t - lastAttract >= ATTRACT_STEP_MS) {
@@ -303,7 +452,13 @@ export function createKiosk({ onExit }) {
   // A browser in kiosk mode fills the screen without the Fullscreen API, so check the size too.
   const isFullscreen = () =>
     !!document.fullscreenElement || (Math.abs(innerWidth - screen.width) < 2 && Math.abs(innerHeight - screen.height) < 2);
-  const syncFullscreenButton = () => (fsBtn.hidden = isFullscreen());
+  // macOS shows its menu bar over full-screen pages (iPads also say "Mac", but have touch points).
+  const isMac = /Mac/.test(navigator.platform) && navigator.maxTouchPoints < 2;
+  const syncFullscreen = () => {
+    const full = isFullscreen();
+    fsBtn.hidden = full;
+    root.classList.toggle('mac-fullscreen', isMac && full);
+  };
   const enterFullscreen = () => document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
   fsBtn.addEventListener('click', enterFullscreen);
   $('#open-settings').addEventListener('click', () => exit());
@@ -342,17 +497,22 @@ export function createKiosk({ onExit }) {
     carousel.measure();
     carousel.go(carousel.home, { instant: true });
     captionsOn = catalog.settings.captions;
+    mutedOn = catalog.settings.muteVideos;
     lastInput = performance.now();
     idleResetDone = false;
     timer = setInterval(idleTick, 500);
-    syncFullscreenButton();
+    pendingCatalog = null;
+    checkTimer = setInterval(checkCatalog, CATALOG_CHECK_MS);
+    syncFullscreen();
     listeners = new AbortController();
     const { signal } = listeners;
     addEventListener('keydown', onKey, { signal });
     for (const type of ['pointerdown', 'pointermove', 'wheel']) addEventListener(type, noteInput, { capture: true, passive: true, signal });
     addEventListener('contextmenu', (e) => e.preventDefault(), { signal });
-    addEventListener('resize', syncFullscreenButton, { signal });
-    document.addEventListener('fullscreenchange', syncFullscreenButton, { signal });
+    addEventListener('resize', syncFullscreen, { signal });
+    document.addEventListener('fullscreenchange', syncFullscreen, { signal });
+    addEventListener('popstate', followUrl, { signal });
+    followUrl();
   }
 
   function exit() {
@@ -362,6 +522,8 @@ export function createKiosk({ onExit }) {
     endHold();
     if (player.isOpen) player.close('exit');
     clearInterval(timer);
+    clearInterval(checkTimer);
+    pendingCatalog = null;
     root.hidden = true;
     root.classList.remove('hide-cursor');
     watched = new Set();

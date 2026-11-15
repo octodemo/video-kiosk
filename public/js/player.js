@@ -1,10 +1,13 @@
 import { $, formatTime, iconSvg } from './dom.js';
 
 const HIDE_CONTROLS_MS = 3000;
+const STUCK_MS = 45_000; // A video that does not move for this long counts as failed.
 const PAUSE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
 
 // Full-screen video overlay with large, touch-friendly controls.
-export function createPlayer(root, { onClose, onCaptions }) {
+// onEnded() returns true when it starts the next video itself (loop playback).
+// onError() returns { wait, next } to play the next video after a failed one (loop playback).
+export function createPlayer(root, { onClose, onCaptions, onMuted, onEnded, onError }) {
   const video = $('video', root);
   const toggle = $('.toggle', root);
   const bigPlay = $('.big-play', root);
@@ -15,6 +18,7 @@ export function createPlayer(root, { onClose, onCaptions }) {
   const total = $('.time-total', root);
   const cc = $('.cc', root);
   const ccBox = $('.captions', root);
+  const sound = $('.sound', root);
   const error = $('.player-error', root);
   let hideTimer = 0;
   let errorTimer = 0;
@@ -24,6 +28,8 @@ export function createPlayer(root, { onClose, onCaptions }) {
   let open = false;
   let trackEl = null;
   let captionsOn = true;
+  let viewerPaused = false; // Only a viewer's pause stops a video; the player starts other pauses again.
+  let movedAt = 0; // When the video last moved (or started to try)
 
   const isPlaying = () => !video.paused && !video.ended;
 
@@ -71,11 +77,42 @@ export function createPlayer(root, { onClose, onCaptions }) {
   }
 
   function play() {
-    video.play().catch(() => syncButtons());
+    video.play().catch((err) => {
+      // A browser can block sound until a viewer touches the page (for example, a link
+      // opened in a new tab, or a kiosk browser that starts again). Then play without sound.
+      if (err.name === 'NotAllowedError' && open && !video.muted) {
+        setMuted(true);
+        onMuted?.(true);
+        video.play().catch(() => syncButtons());
+      } else syncButtons();
+    });
   }
   function togglePlay() {
-    isPlaying() ? video.pause() : play();
+    viewerPaused = isPlaying();
+    movedAt = performance.now();
+    viewerPaused ? video.pause() : play();
     showControls();
+  }
+  const shouldPlay = () => open && !viewerPaused && !video.ended && !video.error && !errorTimer;
+
+  // The kiosk calls this about every half second. The browser can pause a video, for example
+  // in a hidden window; start it again. A video that does not move for STUCK_MS fails (the
+  // network stopped, or the browser does not let it play).
+  function keepPlaying() {
+    if (!shouldPlay() || document.hidden) return;
+    if (performance.now() - movedAt > STUCK_MS) fail();
+    else if (video.paused) play();
+  }
+
+  function fail() {
+    if (!open || errorTimer) return;
+    const skip = onError?.();
+    error.textContent = skip ? 'This video cannot play. Playing the next video…' : 'This video cannot play. Going back to the list…';
+    error.hidden = false;
+    errorTimer = setTimeout(() => {
+      errorTimer = 0;
+      skip ? skip.next() : close('error');
+    }, skip?.wait ?? 3000);
   }
 
   // The kiosk draws the captions itself (the track stays "hidden"), so it controls their
@@ -102,15 +139,27 @@ export function createPlayer(root, { onClose, onCaptions }) {
     $('.cc-state', cc).textContent = on ? 'On' : 'Off';
   }
 
+  // The speaker button shows "unmute" (sound on) or "mute" (sound off).
+  function setMuted(on) {
+    video.muted = on;
+    sound.classList.toggle('is-off', on);
+    sound.setAttribute('aria-pressed', String(on));
+    sound.setAttribute('aria-label', on ? 'Turn sound on' : 'Mute');
+    $('.icon', sound).innerHTML = iconSvg(on ? 'mute' : 'unmute');
+  }
+
   function removeTrack() {
     trackEl?.remove();
     trackEl = null;
     ccBox.replaceChildren();
   }
 
-  function openVideo(v, { captions }) {
+  function openVideo(v, { captions, muted = false }) {
     open = true;
     clearTimeout(errorTimer);
+    errorTimer = 0;
+    viewerPaused = false;
+    movedAt = performance.now();
     error.hidden = true;
     // The video shows its own title, so the player names it only for screen readers.
     video.setAttribute('aria-label', v.title);
@@ -123,6 +172,7 @@ export function createPlayer(root, { onClose, onCaptions }) {
       el.track.addEventListener('cuechange', () => el === trackEl && renderCues());
       trackEl = el;
     }
+    setMuted(muted);
     video.src = v.src;
     root.hidden = false;
     shown = { p: -1, now: '', total: '' };
@@ -139,6 +189,7 @@ export function createPlayer(root, { onClose, onCaptions }) {
     raf = 0;
     clearTimeout(hideTimer);
     clearTimeout(errorTimer);
+    errorTimer = 0;
     video.pause();
     removeTrack();
     video.removeAttribute('src');
@@ -154,6 +205,11 @@ export function createPlayer(root, { onClose, onCaptions }) {
   toggle.addEventListener('click', togglePlay);
   bigPlay.addEventListener('click', togglePlay);
   $('.close', root).addEventListener('click', () => close('closed'));
+  sound.addEventListener('click', () => {
+    setMuted(!video.muted);
+    onMuted?.(video.muted);
+    showControls();
+  });
   cc.addEventListener('click', () => {
     setCaptions(!captionsOn);
     onCaptions?.(captionsOn);
@@ -165,17 +221,26 @@ export function createPlayer(root, { onClose, onCaptions }) {
   });
   // Seeking or loading while paused still updates the bar.
   for (const type of ['seeked', 'durationchange', 'loadedmetadata']) video.addEventListener(type, draw);
+  // A spinner while the video waits for data, so a wait does not look like a pause.
+  // It shows only after a short delay, so quick waits do not make it flash.
+  let bufferTimer = 0;
+  const setBuffering = (on) => {
+    clearTimeout(bufferTimer);
+    if (on) bufferTimer = setTimeout(() => open && root.classList.add('is-buffering'), 400);
+    else root.classList.remove('is-buffering');
+  };
+  video.addEventListener('waiting', () => setBuffering(true));
+  for (const type of ['playing', 'canplay', 'pause', 'ended', 'error', 'emptied']) video.addEventListener(type, () => setBuffering(false));
+
   video.addEventListener('pause', () => {
     syncButtons();
     showControls();
   });
-  video.addEventListener('ended', () => close('ended'));
-  video.addEventListener('error', () => {
-    if (!open || !video.getAttribute('src')) return;
-    error.textContent = 'This video cannot play. Going back to the list…';
-    error.hidden = false;
-    errorTimer = setTimeout(() => close('error'), 3000);
-  });
+  video.addEventListener('ended', () => onEnded?.() || close('ended'));
+  video.addEventListener('error', () => video.getAttribute('src') && fail());
+  video.addEventListener('timeupdate', () => (movedAt = performance.now()));
+  // A hidden window can stop time updates; do not count that time as stuck.
+  document.addEventListener('visibilitychange', () => (movedAt = performance.now()));
 
   function seekTo(e) {
     const r = seek.getBoundingClientRect();
@@ -203,11 +268,13 @@ export function createPlayer(root, { onClose, onCaptions }) {
     setCaptionSize: (size) => (root.dataset.ccSize = size),
     close,
     togglePlay,
+    keepPlaying,
     get isOpen() {
       return open;
     },
-    get isPlaying() {
-      return open && isPlaying();
+    // True while a video plays or should play: a viewer did not pause it, and it did not end or fail.
+    get shouldPlay() {
+      return shouldPlay();
     },
   };
 }

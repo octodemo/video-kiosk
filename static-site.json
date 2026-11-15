@@ -1,0 +1,18 @@
+{
+  "siteUrl": "https://purple-sky-020d7461e.6.azurestaticapps.net",
+  "catalogs": [
+    "catalogs/universe-on-the-road-azure-11-2026.json",
+    "catalogs/ignite-azure-11-2026.json"
+  ],
+  "liveCatalogs": "https://ghuniverseroadtrip.blob.core.windows.net/catalogs",
+  "mediaVersion": 5,
+  "defaults": {
+    "theme": "github-dark",
+    "idleSeconds": 120,
+    "attractMode": true,
+    "loopPlayback": false,
+    "muteVideos": false,
+    "captions": true,
+    "captionSize": "medium"
+  }
+}

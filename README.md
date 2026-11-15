@@ -6,11 +6,14 @@ the list at the same place.
 
 ![The kiosk home screen: a 3D carousel of folder cards](docs/images/home.jpg)
 
-- Node.js (Express) with plain HTML, CSS, and JavaScript. No build step.
-- Themes: **Dark**, **Light**, **GitHub Dark**, and **GitHub Light**.
-- Closed captions from `.vtt` files, with a **CC On/Off** button in the player.
+- Node.js (Express) with plain HTML, CSS, and JavaScript. No build step to run it locally.
+- Themes: **Dark**, **Light**, **GitHub Dark**, **GitHub Light**, **VS Code Dark**, and **VS Code Light**.
+- Closed captions from `.vtt` files, with **CC** and sound on/off buttons in the player.
+- **Play all** and a Loop video playback setting (a folder plays like a playlist), and a **Mute videos** setting.
+- **Video management** on the Azure site: approved GitHub accounts turn videos on or off, edit them, and upload new videos. Changes are versioned and reach the kiosks in about a minute.
 - Touch, mouse, and keyboard: tap or click any folder card, swipe or drag the carousel, or use the arrow keys.
-- Works offline. Fonts, icons, and videos are local.
+- Works offline with `npm start`: fonts, icons, and videos are local. It can also run as a
+  static site on Azure, with the videos in Blob Storage (see [Deploy to Azure](#deploy-to-azure)).
 
 ## Quick start: Set up the video kiosk
 
@@ -42,7 +45,7 @@ names to locate videos.
 ```
 video-kiosk/
 ├── catalogs/
-│   └── universe-on-the-road.json
+│   └── universe-on-the-road-11-2026.json
 └── videos/
     ├── GitHub Advanced Security - Found means fixed/
     ├── GitHub Copilot - Automations, Metrics, Code Review, Cloud Agent/
@@ -74,11 +77,13 @@ For a different port, use `PORT=3001 npm start` (macOS) or `$env:PORT=3001; npm 
 On the settings page:
 
 1. Select **JSON file** as the video source.
-2. Choose `catalogs/universe-on-the-road.json`.
+2. Choose `catalogs/universe-on-the-road-11-2026.json`.
 3. Select a theme: **GitHub Dark** or **GitHub Light**. Standard **Dark** and **Light**
    themes are also available.
-4. Adjust the idle timeout, attract mode, and captions if required.
-5. Click **Launch kiosk**.
+4. Adjust the kiosk behavior if required: idle reset time, attract mode, loop video playback,
+   mute videos, captions default, and caption size.
+5. Select **Launch kiosk**. It opens in full screen. **Esc** exits full screen only; a
+   **Full screen** button then shows at the top right.
 
 ![The settings page: videos source, theme, and kiosk behavior](docs/images/settings.jpg)
 
@@ -93,7 +98,7 @@ The settings page displays the number of available videos and any missing files.
 You can also validate the catalog:
 
 ```bash
-npm run validate -- catalogs/universe-on-the-road.json
+npm run validate -- catalogs/universe-on-the-road-11-2026.json
 ```
 
 If videos are missing, verify their folder names and filenames against the JSON catalog.
@@ -116,23 +121,64 @@ sections of this README.
 
 - **Home:** tap any folder card to open it. Swipe or use the arrows and dots to turn the carousel.
   The gear in the top-right corner opens the settings.
-- **Video list:** tap a video to play it. **Back** or **Home** returns to the carousel.
-- **Player:** tap the video to show the controls, then tap to pause or play. The back arrow (top-left
-  corner) is always visible; it shows **Back** when the video is paused. **CC** turns captions on or off; the choice carries to the next
-  video. When a video ends, the list returns at the same place, with a check on that video.
-- **Idle:** after the idle time, the kiosk returns to the start screen and resets captions and
-  watched checks. It never stops a video that is playing. With attract mode on, the carousel
+- **Video list:** tap a video to play it. **Play all** (top-right corner) plays the folder's
+  videos in a loop, from the first video, until a viewer selects Back. It works when the
+  **Loop video playback** setting is off. **Back** or **Home** returns to the carousel.
+- **Player:** tap the video to show the controls, then tap to pause or play. The back arrow
+  (top-left corner) is always visible; it shows **Back** when the video is paused. The speaker
+  button turns sound on or off, and **CC** turns captions on or off; both choices carry to the
+  next video. When a video ends, the list returns at the same place, with a check on that video.
+- **Loop video playback:** when this setting is on, each video that a viewer plays starts a
+  loop: the videos in the folder play one after another. After the last video, the first plays
+  again, until a viewer selects Back. Idle reset never stops a playing video, so the loop runs
+  until someone stops it. These rules also apply to **Play all**. If a video cannot play, or
+  does not move for 45 seconds, the next video plays. If all the videos fail (for example, the
+  network is down), the kiosk waits 30 seconds between tries. If the browser pauses a video
+  (for example, in a hidden window), the kiosk starts it again. If the browser blocks sound,
+  the video plays without sound.
+- **Mute videos:** when this setting is on, every video starts without sound. Turn captions on
+  so viewers can still follow along.
+- **Idle:** after the idle time, the kiosk returns to the start screen and resets captions,
+  sound, and watched checks to the settings. It never stops a video that is playing. With attract mode on, the carousel
   turns slowly when nobody uses the kiosk.
 - **Keyboard:** arrow keys turn the carousel, **Enter** opens or plays, **Backspace** goes back,
-  and **Space** pauses.
+  **Space** pauses or plays, and **Ctrl+Alt+S** opens the settings.
 - **macOS:** in full screen, the menu bar shows when the pointer moves to the top edge. This is
-  normal macOS behavior, and the page stays in full screen. The kiosk hides the pointer after
-  3 seconds.
+  normal macOS behavior, and the page stays in full screen. The kiosk moves its corner buttons
+  down in full screen on a Mac, so the menu bar does not cover them, and it hides the pointer
+  after 3 seconds.
+
+## Links to a list or a video
+
+The address changes as you move through the kiosk, so you can copy it to link to a screen:
+
+| Link | Opens |
+|---|---|
+| `#kiosk` | The start screen |
+| `#kiosk/github-enterprise` | The GitHub Enterprise video list |
+| `#kiosk/github-enterprise/budget-delegation` | That video, in its list |
+
+- **Folder IDs** come from the folder title. When two folders have the same title (for
+  example, the two "GitHub Copilot" folders), the description is added:
+  `#kiosk/github-copilot-desktop-app-cli-sdk`.
+- **Video IDs** are the video's file name without `.mp4`, so a link still works after the
+  title changes.
+- **On the static site**, links also name the catalog, for example
+  `https://<site>/?catalog=ignite-azure-11-2026#kiosk/azure-devops`. The catalog applies only
+  to that visit; the settings page choice stays the same.
+- If a link names a folder or video that is not in the catalog, the kiosk opens the closest
+  screen (the folder's list, or the start screen).
+- The browser's Back and Forward buttons move between screens.
+- A video link that is opened in a new tab may not start until someone taps play, because
+  browsers block videos with sound from playing on their own. Muted videos start at once, and
+  the kiosk-mode commands below can allow sound.
 
 ## Start a browser in kiosk mode
 
-Open `http://localhost:3000/#kiosk` to start the kiosk without the settings page. Start
-the server first. The kiosk flags work only if the browser is not already open, so these
+Open `http://localhost:3000/#kiosk` (or a [link to a list or a video](#links-to-a-list-or-a-video))
+to start the kiosk without the settings page. Start the server first. Add
+`--autoplay-policy=no-user-gesture-required` to the commands to let videos with sound start on
+their own. The kiosk flags work only if the browser is not already open, so these
 commands use a separate profile folder.
 
 **macOS**
@@ -153,18 +199,21 @@ Start-Process chrome -ArgumentList '--kiosk','--user-data-dir=C:\kiosk\chrome','
 Start-Process msedge -ArgumentList '--kiosk','--edge-kiosk-type=fullscreen','--no-first-run','--user-data-dir=C:\kiosk\edge','http://localhost:3000/#kiosk'
 ```
 
-In browser kiosk mode, select the gear on the home screen (or hold the logo for 3 seconds) to open the settings. To close the browser, press
-**Cmd+Q** (macOS) or **Alt+F4** (Windows).
+In browser kiosk mode, select the gear on the home screen (or hold the logo for 3 seconds) to
+open the settings. To close the browser, press **Cmd+Q** (macOS) or **Alt+F4** (Windows).
 
 ## Catalog JSON
 
 A catalog lists the folders and videos. Schema: [`schema/kiosk-catalog.schema.json`](schema/kiosk-catalog.schema.json).
 
+Catalog file names end with the month and year they were made, as `<name>-<month>-<year>.json`
+(for example, `universe-on-the-road-11-2026.json`), so that later versions can be told apart.
+
 ```json
 {
   "$schema": "../schema/kiosk-catalog.schema.json",
   "title": "Universe on the Road",
-  "subtitle": "Self-Serve Videos",
+  "subtitle": "Videos",
   "icon": "assets/GitHub_Invertocat_White.svg",
   "iconLight": "assets/GitHub_Invertocat_Black.svg",
   "folders": [
@@ -195,12 +244,13 @@ A catalog lists the folders and videos. Schema: [`schema/kiosk-catalog.schema.js
 | `folders[].icon` | No | Octicon name or image. Default: `file-directory`. Use the name without the size (`rocket`, not `rocket-24`). |
 | `videos[].title`, `description`, `path` | Yes | `path` is a file path or an `http(s)` URL. |
 | `videos[].captions` | No | A `.vtt` file. |
-| `videos[].thumbnail`, `duration` | No | If you omit them, the server makes them with ffmpeg. |
+| `videos[].thumbnail`, `duration` | No | If you omit them, the server makes them with ffmpeg (`npm run azure:catalog` adds them for Azure). |
+| `videos[].enabled` | No | `false` hides the video in the kiosk but keeps it in the catalog. A folder with no videos on is hidden. Default: `true`. |
 
 Relative paths start from the folder that contains the catalog. Validate a catalog with:
 
 ```bash
-npm run validate -- catalogs/universe-on-the-road.json
+npm run validate -- catalogs/universe-on-the-road-11-2026.json
 ```
 
 Errors stop the kiosk from using a catalog. Warnings do not; for example, the kiosk hides a
@@ -221,6 +271,212 @@ prefixes and are removed: `github-gh-t-question-dependabot.mp4` becomes `Questio
 
 Select **Download catalog JSON** on the settings page to get a catalog that you can edit.
 
+## Deploy to Azure
+
+The kiosk can also run as a static site on [Azure Static Web Apps](https://learn.microsoft.com/azure/static-web-apps/),
+with the videos in Azure Blob Storage. On a static site, the settings page saves the
+settings in the browser. **Browse** lists the catalog JSON files in the build; there is no
+folder mode. The live copy is at https://purple-sky-020d7461e.6.azurestaticapps.net/.
+
+You need the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) (`az login`),
+the [GitHub CLI](https://cli.github.com/) (`gh auth login`), ffmpeg, and push access to your
+copy of this repository.
+
+### 1. Create the Azure resources
+
+Set names for your resources. The storage account name must be 3–24 lowercase letters and
+numbers, and unique in Azure. On the Free plan, Static Web Apps is available in `westus2`,
+`centralus`, `eastus2`, `westeurope`, and `eastasia`.
+
+```bash
+RG=my-video-kiosk          # resource group
+LOCATION=westus2
+STORAGE=myvideokiosk123    # storage account
+CONTAINER=videos
+SWA=my-video-kiosk         # Static Web App
+```
+
+Create the resource group, a storage account, and a container that anyone can read (the
+kiosk plays the videos without a sign-in):
+
+```bash
+az group create -n $RG -l $LOCATION
+az storage account create -n $STORAGE -g $RG -l $LOCATION --sku Standard_LRS --kind StorageV2 \
+  --access-tier Hot --https-only true --min-tls-version TLS1_2 --allow-blob-public-access true
+az storage container-rm create --storage-account $STORAGE -g $RG -n $CONTAINER --public-access blob
+```
+
+Set the two blob service settings that make the videos stream:
+
+- **Default service version.** A browser does not send the `x-ms-version` header, so without
+  a default, Blob Storage answers with a 2009 API version that does not return
+  `Accept-Ranges: bytes`. Then the browser cannot fetch parts of a video to stream or seek.
+- **CORS** that exposes the streaming headers. The browser also needs CORS for captions.
+
+```bash
+az storage account blob-service-properties update --account-name $STORAGE -g $RG \
+  --default-service-version 2026-02-06
+az storage account blob-service-properties cors-rule add --account-name $STORAGE -g $RG \
+  --allowed-origins "*" --allowed-methods GET HEAD OPTIONS --allowed-headers "*" \
+  --exposed-headers Accept-Ranges Content-Range Content-Length Content-Type ETag --max-age 3600
+```
+
+Give your account permission to upload (with Microsoft Entra ID, not account keys). The role
+can take a few minutes to apply. Then create the Static Web App:
+
+```bash
+az role assignment create --role "Storage Blob Data Contributor" \
+  --assignee-object-id "$(az ad signed-in-user show --query id -o tsv)" --assignee-principal-type User \
+  --scope "$(az storage account show -n $STORAGE -g $RG --query id -o tsv)"
+az staticwebapp create -n $SWA -g $RG -l $LOCATION --sku Free --query defaultHostname -o tsv
+```
+
+The last command shows the site's address.
+
+### 2. Make a catalog that uses Blob Storage
+
+Put the videos in `videos/` and make a catalog for them (see [Catalog JSON](#catalog-json)).
+Then make a copy of it with Blob Storage URLs. The tool also makes a thumbnail for each video
+(in `data/azure/thumbnails`) and adds each video's length. Each file keeps its path under
+`videos/`:
+
+```bash
+npm run azure:catalog -- --catalog catalogs/universe-on-the-road-11-2026.json \
+  --base-url https://$STORAGE.blob.core.windows.net/$CONTAINER \
+  --out catalogs/universe-on-the-road-azure-11-2026.json
+```
+
+### 3. Upload the files
+
+Upload each file type with its content type. `npm run azure:faststart` copies each MP4 whose
+index is at the end of the file to `data/azure/faststart`, with the index at the start (no
+re-encoding), so it starts playing at once. Upload those copies after the others, so they
+replace them:
+
+```bash
+npm run azure:faststart
+UPLOAD="--account-name $STORAGE -d $CONTAINER --auth-mode login --overwrite true --max-connections 8"
+az storage blob upload-batch $UPLOAD -s videos --pattern "*/*.mp4" --content-type video/mp4
+az storage blob upload-batch $UPLOAD -s videos --pattern "*/*.vtt" --content-type "text/vtt; charset=utf-8"
+az storage blob upload-batch $UPLOAD -s data/azure/faststart --pattern "*/*.mp4" --content-type video/mp4
+az storage blob upload-batch $UPLOAD -s data/azure/thumbnails --destination-path thumbnails \
+  --content-type image/jpeg
+```
+
+For nested folders, add more patterns (for example, `"*/*/*.mp4"`).
+
+### 4. Build and deploy the site
+
+List the Azure catalogs in `static-site.json`. It also sets the site's default settings
+(theme, idle time, loop playback, mute, captions); each browser can change them on the
+settings page. After you replace files in Blob Storage, increase `mediaVersion`: the build
+adds it to the media URLs, so browsers do not use copies that they stored before.
+
+List the site's address in `siteUrl`. The live site check uses it when the deploy does not
+return an address.
+
+The GitHub Actions workflow
+([`.github/workflows/deploy-static-web-app.yml`](.github/workflows/deploy-static-web-app.yml))
+runs on every pull request to `main` and on every push to `main` (a merged pull request is a
+push). It does these steps:
+
+1. `npm run check` validates the catalogs in `static-site.json` against the schema. Warnings
+   also stop the build. It sends a request to each video, captions, and thumbnail URL and
+   makes sure that each one returns the correct content type. It also makes sure that each
+   video accepts byte-range requests, so it can stream. Each Azure catalog must have the
+   same titles and descriptions as its source catalog (for example `ignite-11-2026.json`).
+   This way, the next `npm run azure:catalog` does not remove an edit.
+2. `npm run build:static` builds `dist/`, and `npm run build:api` builds the
+   [Video management](#5-video-management) API in `dist-api/`.
+3. On a push to `main` only, the workflow deploys `dist/` and `dist-api/`. If the deploy fails, it waits
+   1 minute and tries one more time.
+4. `npm run check:live` waits until the live site serves the new files (up to 5 minutes).
+
+If a step fails, the workflow does not deploy. The live site keeps its last good copy, and
+GitHub sends an email about the failed run. On a pull request, the failed check shows before
+the merge. To edit a title or description, change it in both catalogs (for example
+`ignite-11-2026.json` and `ignite-azure-11-2026.json`), then run `npm run check`.
+
+Save the Static Web App's deployment token as a repository secret, then push:
+
+```bash
+gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --body "$(az staticwebapp secrets list \
+  -n $SWA -g $RG --query properties.apiKey -o tsv)"
+git push
+```
+
+To deploy without GitHub Actions, run `npm run build:static`, then
+`npx @azure/static-web-apps-cli deploy ./dist --env production --deployment-token <token>`.
+To look at the site locally first, serve `dist/` with any static file server.
+
+### 5. Video management
+
+The **Video management** button on the settings page (at the bottom of **Videos**) opens
+`/manage.html`. People sign in with GitHub. Only the GitHub usernames in the `MANAGERS` app
+setting can use the page. On the page you can:
+
+- Turn each video on or off (the kiosk hides a video that is off), and edit its title and description.
+- **Add video:** pick a kiosk folder, or make a new folder. Then enter a title and a
+  description, and pick a video file (`.mp4`, `.m4v`, or `.webm`, up to 4 GB) and an optional
+  `.vtt` captions file. The browser does the same work as the tools in steps 2 and 3: it
+  moves the MP4 index to the start, reads the length, and makes the thumbnail. Then it
+  uploads the files to the folder's storage folder (for a new folder: `<title> - <description>`).
+- **Publish** the changes. The API validates the catalog and checks each new file. Then it
+  saves a new version. Kiosks check for a new version once a minute. They show it when
+  nobody has touched the kiosk for 5 seconds and no video is open, or between two videos
+  in a loop.
+- **History** lists each version, with who published it and the note. **Restore** loads
+  a version (or the **Repo version** from GitHub) as changes that you can publish.
+  **Download JSON** saves the catalog, for example to commit it to the repo.
+
+Changes stay on the page until you publish them. Uploaded files stay in storage, even if
+you do not publish them.
+
+**The published catalog comes first.** Before the first publish, the kiosks use the catalogs
+in the repo. After it, they use the published catalog in Blob Storage, so a later change to
+a catalog in the repo does not show. To use the repo's catalog again, deploy it, then select
+**History** > **Repo version** > **Restore** and publish.
+
+Set it up one time:
+
+```bash
+# Containers: catalogs (anyone can read; kiosks load them) and catalog-admin (private: drafts and versions)
+az storage container-rm create --storage-account $STORAGE -g $RG -n catalogs --public-access blob
+az storage container-rm create --storage-account $STORAGE -g $RG -n catalog-admin --public-access off
+
+# Let the site's pages upload to the videos container (only with a link from the API)
+SITE=https://$(az staticwebapp show -n $SWA -g $RG --query defaultHostname -o tsv)
+az storage account blob-service-properties cors-rule add --account-name $STORAGE -g $RG \
+  --allowed-origins $SITE --allowed-methods PUT OPTIONS --allowed-headers "*" \
+  --exposed-headers ETag x-ms-error-code x-ms-request-id --max-age 3600
+
+# App settings for the API: the storage connection and the approved GitHub usernames
+az staticwebapp appsettings set -n $SWA -g $RG --setting-names \
+  STORAGE_CONNECTION_STRING="$(az storage account show-connection-string -n $STORAGE -g $RG -o tsv)" \
+  MANAGERS="danwahlin,katiesavage"
+```
+
+Set `liveCatalogs` in `static-site.json` to `https://<storage account>.blob.core.windows.net/catalogs`.
+To add or remove a person, change `MANAGERS` (comma-separated GitHub usernames) with the
+same `appsettings set` command. The change applies at once. The API can also use other
+container names: set `VIDEOS_CONTAINER`, `CATALOGS_CONTAINER`, and `ADMIN_CONTAINER`.
+
+To run it locally, add `http://localhost:4280` to the PUT CORS rule's origins (remove it
+again when you are done), build both parts, start the API with
+[Azure Functions Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local)
+(put the app settings in `dist-api/local.settings.json`), then start the
+[Static Web Apps CLI](https://learn.microsoft.com/azure/static-web-apps/static-web-apps-cli-overview),
+which shows a test sign-in form:
+
+```bash
+npm run build:static && npm run build:api && npm ci --omit=dev --prefix dist-api
+(cd dist-api && func start --port 7071)
+npx @azure/static-web-apps-cli start dist --api-devserver-url http://localhost:7071 --port 4280
+```
+
+**Costs:** the Free plan of Static Web Apps costs nothing. Blob Storage costs about $0.02 per GB
+a month to store, and about $0.08 per GB that viewers watch after the first 100 GB a month.
+
 ## Security
 
 The server listens on `127.0.0.1` by default. The settings API accepts requests only from
@@ -228,18 +484,54 @@ the same computer, and it checks the `Host` header to block DNS rebinding. The m
 serve only files that the loaded catalog names. If you set `HOST=0.0.0.0` to show the kiosk
 on another device, the settings page still works only on the server computer.
 
+On the static site, anyone with the site's address can open the settings page, but the
+settings are saved only in that browser. The Blob Storage container allows anonymous read
+access, so anyone with a video's URL can watch it. Do not upload videos that must stay private.
+
+Video management:
+
+- **Sign-in.** Static Web Apps lets only signed-in people open `/manage.html` and call
+  `/api/manage/*`. Only GitHub sign-in is on. The API also checks that the GitHub username
+  is in `MANAGERS`, for each request. Remove a person from `MANAGERS` when they no longer
+  need access, because a GitHub username can later belong to someone else.
+- **Requests.** A change must be JSON and have the `X-Kiosk-Manage` header, so a page on
+  another site cannot make a change with your sign-in. The page has a strict
+  Content Security Policy and cannot be shown in a frame on another site.
+- **Uploads.** The browser uploads straight to Blob Storage with a link from the API. Each
+  link is for one new file name, can only create that file, works over HTTPS only, and
+  expires after 60 minutes. The browser cannot read the account key.
+- **Publishing.** The API validates the catalog against the schema. Each new video,
+  captions, or thumbnail URL must be in the videos container and answer with the correct
+  content type, and each icon must be an Octicon name or a logo in `catalogs/assets`. A
+  publish stops if someone else published after you opened the catalog, so no change is
+  lost. Every version stays in the private `catalog-admin` container.
+- **Secrets.** The storage connection string is only in the Static Web App's app settings,
+  not in the repo or the browser.
+
 ## Project structure
 
 ```
-server.js                    Express server and API
-lib/                         Catalog validation, folder mode, ffmpeg media, settings, QuickXorHash
-public/                      Settings page and kiosk (HTML, CSS, JavaScript modules)
+server.js                    Express server and API (npm start)
+lib/                         Catalog validation, folder mode, ffmpeg media, settings, icons, QuickXorHash
+public/                      Settings page, kiosk, and Video management page (HTML, CSS, JavaScript modules)
 schema/                      Catalog JSON schema
-tools/validate.js            Catalog validation CLI
-tools/sharepoint-catalog.js  Builds a catalog from a SharePoint listing and the board
-catalogs/                    Catalogs and logo assets
-videos/                      Your video files (not in Git)
+catalogs/                    Catalogs (<name>-<month>-<year>.json) and logo assets
+static-site.json             Catalogs, media version, and default settings for the static site
+tools/validate.js            Catalog validation CLI (npm run validate)
+tools/sharepoint-catalog.js  Builds a catalog from a SharePoint listing and the board (npm run catalog:sharepoint)
+tools/azure-catalog.js       Copies a catalog with Blob Storage URLs and thumbnails (npm run azure:catalog)
+tools/faststart.js           Copies MP4s with the index moved to the start (npm run azure:faststart)
+tools/build-static.js        Builds the static site in dist/ (npm run build:static)
+tools/build-api.js           Builds the Video management API in dist-api/ (npm run build:api)
+api/                         Video management API (Azure Functions for Static Web Apps)
+tools/check-catalogs.js      Checks the site's catalogs and media URLs before a deploy (npm run check)
+tools/check-live.js          Checks that the live site serves the new build (npm run check:live)
+.github/workflows/           Checks each pull request; deploys the static site to Azure on each push to main
+.github/skills/              Copilot skill: build a catalog from SharePoint (read only)
 docs/images/                 README screenshots
+videos/                      Your video files (not in Git)
+data/                        Local settings and the thumbnail cache (not in Git)
+dist/, dist-api/             The static site and API builds (not in Git)
 ```
 
 The GitHub Invertocat files in `catalogs/assets/` come from the
